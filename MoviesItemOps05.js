@@ -1,6 +1,6 @@
 /**
  *
- * -DynamoDB initialization and table creation
+ * Conditional update
  *
  * Copyright 2010-2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
@@ -23,34 +23,37 @@ AWS.config.update({
   endpoint: "http://localhost:8000"
 });
 
-var dynamodb = new AWS.DynamoDB();
+var docClient = new AWS.DynamoDB.DocumentClient();
+
+var table = "Movies";
+
+var year = 2015;
+var title = "The Big New Movie";
+
+// Conditional update (will pass)
 
 var params = {
-  TableName: "Movies",
-  KeySchema: [
-    { AttributeName: "year", KeyType: "HASH" }, //Partition key
-    { AttributeName: "title", KeyType: "RANGE" } //Sort key
-  ],
-  AttributeDefinitions: [
-    { AttributeName: "year", AttributeType: "N" },
-    { AttributeName: "title", AttributeType: "S" }
-  ],
-  ProvisionedThroughput: {
-    ReadCapacityUnits: 10,
-    WriteCapacityUnits: 10
-  }
+  TableName: table,
+  Key: {
+    year: year,
+    title: title
+  },
+  UpdateExpression: "remove info.actors[0]",
+  ConditionExpression: "size(info.actors) >= :num",
+  ExpressionAttributeValues: {
+    ":num": 3
+  },
+  ReturnValues: "UPDATED_NEW"
 };
 
-dynamodb.createTable(params, function(err, data) {
+console.log("Attempting a conditional update...");
+docClient.update(params, function(err, data) {
   if (err) {
     console.error(
-      "Unable to create table. Error JSON:",
+      "Unable to update item. Error JSON:",
       JSON.stringify(err, null, 2)
     );
   } else {
-    console.log(
-      "Created table. Table description JSON:",
-      JSON.stringify(data, null, 2)
-    );
+    console.log("UpdateItem succeeded:", JSON.stringify(data, null, 2));
   }
 });

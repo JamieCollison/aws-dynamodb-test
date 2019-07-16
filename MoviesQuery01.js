@@ -1,7 +1,8 @@
 /**
  *
- * -DynamoDB initialization and table creation
- *
+ * Query, partition key must be included, sort key optional
+ * See secondary indexes
+ * https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/SecondaryIndexes.html
  * Copyright 2010-2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * This file is licensed under the Apache License, Version 2.0 (the "License").
@@ -23,34 +24,28 @@ AWS.config.update({
   endpoint: "http://localhost:8000"
 });
 
-var dynamodb = new AWS.DynamoDB();
+var docClient = new AWS.DynamoDB.DocumentClient();
+
+console.log("Querying for movies from 1985.");
 
 var params = {
   TableName: "Movies",
-  KeySchema: [
-    { AttributeName: "year", KeyType: "HASH" }, //Partition key
-    { AttributeName: "title", KeyType: "RANGE" } //Sort key
-  ],
-  AttributeDefinitions: [
-    { AttributeName: "year", AttributeType: "N" },
-    { AttributeName: "title", AttributeType: "S" }
-  ],
-  ProvisionedThroughput: {
-    ReadCapacityUnits: 10,
-    WriteCapacityUnits: 10
+  KeyConditionExpression: "#yr = :yyyy",
+  ExpressionAttributeNames: {
+    "#yr": "year"
+  },
+  ExpressionAttributeValues: {
+    ":yyyy": 1985
   }
 };
 
-dynamodb.createTable(params, function(err, data) {
+docClient.query(params, function(err, data) {
   if (err) {
-    console.error(
-      "Unable to create table. Error JSON:",
-      JSON.stringify(err, null, 2)
-    );
+    console.error("Unable to query. Error:", JSON.stringify(err, null, 2));
   } else {
-    console.log(
-      "Created table. Table description JSON:",
-      JSON.stringify(data, null, 2)
-    );
+    console.log("Query succeeded.");
+    data.Items.forEach(function(item) {
+      console.log(" -", item.year + ": " + item.title);
+    });
   }
 });

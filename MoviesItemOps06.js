@@ -1,6 +1,6 @@
 /**
  *
- * -DynamoDB initialization and table creation
+ * Deletion
  *
  * Copyright 2010-2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
@@ -23,34 +23,33 @@ AWS.config.update({
   endpoint: "http://localhost:8000"
 });
 
-var dynamodb = new AWS.DynamoDB();
+var docClient = new AWS.DynamoDB.DocumentClient();
+
+var table = "Movies";
+
+var year = 2015;
+var title = "The Big New Movie";
 
 var params = {
-  TableName: "Movies",
-  KeySchema: [
-    { AttributeName: "year", KeyType: "HASH" }, //Partition key
-    { AttributeName: "title", KeyType: "RANGE" } //Sort key
-  ],
-  AttributeDefinitions: [
-    { AttributeName: "year", AttributeType: "N" },
-    { AttributeName: "title", AttributeType: "S" }
-  ],
-  ProvisionedThroughput: {
-    ReadCapacityUnits: 10,
-    WriteCapacityUnits: 10
+  TableName: table,
+  Key: {
+    year: year,
+    title: title
+  },
+  ConditionExpression: "info.rating <= :val",
+  ExpressionAttributeValues: {
+    ":val": 5.0
   }
 };
 
-dynamodb.createTable(params, function(err, data) {
+console.log("Attempting a conditional delete...");
+docClient.delete(params, function(err, data) {
   if (err) {
     console.error(
-      "Unable to create table. Error JSON:",
+      "Unable to delete item. Error JSON:",
       JSON.stringify(err, null, 2)
     );
   } else {
-    console.log(
-      "Created table. Table description JSON:",
-      JSON.stringify(data, null, 2)
-    );
+    console.log("DeleteItem succeeded:", JSON.stringify(data, null, 2));
   }
 });
